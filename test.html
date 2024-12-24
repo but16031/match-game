@@ -294,13 +294,33 @@
 'images/unicorn.jpg',
 'images/spider.jpg',
 'images/bird.jpg',
-'images/monkey.jpg',  // Replace with your image URL
-'images/fish.jpg',  // Replace with your image URL
-'images/elephant.jpg',  // Replace with your image URL
-'images/lion.jpg',  // Replace with your image URL
-'images/cat.jpg',  // Replace with your image URL
-'images/cat2.jpg',  // Replace with your image URL
-'images/dog.jpg'
+'images/monkey.jpg',  
+'images/fish.jpg',  
+'images/elephant.jpg',  
+'images/lion.jpg',  
+'images/cat.jpg',  
+'images/cat2.jpg',  
+'images/dog.jpg',
+'images/blank.jpg',
+'images/blue_giraff.jpg',
+'images/blue_gorilla.jpg',
+'images/blue_spider.jpg',  
+'images/giraff.jpg',  
+'images/gorilla.jpg',  
+'images/lemur.jpg',  
+'images/liam1s.jpg',  
+'images/otter.jpg',  
+'images/rainbow_monkey.jpg',
+'images/red_lion.jpg',
+'images/red_spider.jpg',
+'images/shark.jpg',
+'images/tiger.jpg',  
+'images/trex.jpg',  
+'images/whale.jpg',  
+'images/woodpecker.jpg',  
+'images/pteradactyl.jpg',  
+'images/liam2s.jpg',  
+'images/liam33.jpg'
 ];
     
     let cards = [];
@@ -398,9 +418,14 @@
       return 5;
     }
     
+    function getRandomImages(imageUrls, pairCount) {
+      const shuffled = [...imageUrls].sort(() => Math.random() - 0.5); // Shuffle the array
+      return shuffled.slice(0, pairCount); // Take the first 'pairCount' items
+    }
+
     function initializeGame() {
       const pairCount = parseInt(document.getElementById('pairCount').value);
-      const gameImages = imageUrls.slice(0, pairCount);
+      const gameImages = getRandomImages(imageUrls, pairCount);
       
       preloadImages(gameImages);
       
