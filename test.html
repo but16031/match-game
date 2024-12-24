@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Previous styles remain the same until .card::before */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 10px;
+      background: #f9fafb;
+      min-height: 100vh;
+    }
+    
+    .game-container {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    
+    .settings {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      display: grid;
+      gap: 15px;
+    }
+    
+    .settings-group {
+      display: grid;
+      gap: 8px;
+    }
+    
+    .settings select, 
+    .settings input {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+      font-size: 16px; /* Prevent auto-zoom on iOS */
+      margin-top: 4px;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-size: 1.1em;
+    }
+    
+    .grid {
+      display: grid;
+      gap: 8px;
+      margin: 0 auto;
+      justify-content: center;
+    }
+    
+    .card {
+      background: #2563eb;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s;
+      position: relative;
+      touch-action: manipulation; /* Disable double-tap zoom */
+    }
+
+    /* Pattern styles */
+    .card::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+      background-position: center;
+      background-repeat: repeat;
+    }
+
+    .pattern-stripes::before {
+      background-image: repeating-linear-gradient(
+        45deg,
+        #2563eb,
+        #2563eb 10px,
+        #1d4ed8 10px,
+        #1d4ed8 20px
+      );
+    }
+
+    .pattern-dots::before {
+      background-image: radial-gradient(
+        circle at 5px 5px,
+        #1d4ed8 3px,
+        #2563eb 3px
+      );
+      background-size: 20px 20px;
+    }
+
+    .pattern-chevron::before {
+      background-image: 
+        linear-gradient(45deg, #1d4ed8 25%, transparent 25%),
+        linear-gradient(-45deg, #1d4ed8 25%, transparent 25%);
+      background-size: 20px 20px;
+      background-color: #2563eb;
+    }
+
+    .pattern-grid::before {
+      background-image: 
+        linear-gradient(#1d4ed8 2px, transparent 2px),
+        linear-gradient(90deg, #1d4ed8 2px, transparent 2px);
+      background-size: 20px 20px;
+      background-color: #2563eb;
+    }
+
+    .pattern-custom::before {
+      background-size: cover;
+    }
+    
+    .card img {
+      width: 80%;
+      height: 80%;
+      object-fit: contain;
+      display: none;
+      position: absolute;
+      pointer-events: none; /* Prevent image drag on mobile */
+    }
+    
+    .card.flipped {
+      transform: rotateY(180deg);
+      background: white;
+      border: 2px solid #2563eb;
+    }
+    
+    .card.flipped::before {
+      display: none;
+    }
+    
+    .card.flipped img {
+      display: block;
+    }
+    
+    .card.matched {
+      background: #22c55e;
+      border: 2px solid #22c55e;
+    }
+
+    .pattern-preview {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+    
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px 20px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      touch-action: manipulation;
+    }
+    
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    #preloader {
+      display: none;
+    }
+
+    .custom-url-input {
+      display: none;
+    }
+
+    .custom-url-input.visible {
+      display: block;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .game-container {
+        padding: 5px;
+      }
+      
+      .settings {
+        padding: 10px;
+      }
+      
+      .grid {
+        gap: 5px;
+      }
+    }
+
+    /* Collapsible settings on mobile */
+    .settings-toggle {
+      display: none;
+      width: 100%;
+      padding: 10px;
+      background: #e5e7eb;
+      border: none;
+      border-radius: 4px;
+      text-align: left;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 480px) {
+      .settings-toggle {
+        display: block;
+      }
+      
+      .settings {
+        display: none;
+      }
+      
+      .settings.visible {
+        display: grid;
+      }
+      
+      .card {
+        font-size: 0.8em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <button class="settings-toggle" onclick="toggleSettings()">
+      ⚙️ Game Settings
+    </button>
+    <div class="settings" id="settings">
+      <div class="settings-group">
+        <label for="pairCount">Number of Pairs:</label>
+        <select id="pairCount" onchange="resetGame()">
+          <option value="4">4 Pairs</option>
+          <option value="6">6 Pairs</option>
+          <option value="8" selected>8 Pairs</option>
+          <option value="10">10 Pairs</option>
+          <option value="12">12 Pairs</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label for="cardSize">Card Size (px):</label>
+        <input type="range" id="cardSize" value="120" min="60" max="150" step="10" 
+               oninput="updateCardSize()" onchange="updateCardSize()">
+      </div>
+      <div class="settings-group">
+        <label for="cardPattern">Card Back Pattern:</label>
+        <select id="cardPattern" onchange="updateCardPattern()">
+          <option value="pattern-stripes">Stripes</option>
+          <option value="pattern-dots">Dots</option>
+          <option value="pattern-chevron">Chevron</option>
+          <option value="pattern-grid">Grid</option>
+          <option value="pattern-custom">Custom Image</option>
+        </select>
+        <span id="patternPreview" class="pattern-preview pattern-stripes"></span>
+      </div>
+      <div id="customUrlInput" class="custom-url-input">
+        <label for="cardBack">Custom Image URL:</label>
+        <input type="text" id="cardBack" placeholder="Enter image URL" onchange="updateCustomPattern()">
+      </div>
+    </div>
+    <div class="stats">
+      <div>Moves: <span id="moves">0</span></div>
+      <div>Matches: <span id="matches">0</span></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <button onclick="resetGame()">New Game</button>
+  </div>
+  
+  <div id="preloader"></div>
+
+  <script>
+    // Previous script remains the same until updateCardBack()
+    const imageUrls = [
+'images/liam1s.jpg',  // Replace with your image URL
+'images/liam2s.jpg',  // Replace with your image URL
+'images/liam3s.jpg',  // Replace with your image URL
+'images/liam4s.jpg',  // Replace with your image URL
+'images/liam5s.jpg',  // Replace with your image URL
+'images/liam6s.jpg',  // Replace with your image URL
+'images/liam7s.jpg',  // Replace with your image URL
+'images/liam8s.jpg',  // Replace with your image URL
+'images/liam9s.jpg',  // Replace with your image URL
+'images/liam10s.jpg'  // Replace with your image URL
+];
+    
+    let cards = [];
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let moves = 0;
+    let preloadedImages = new Set();
+    
+    function updateCardPattern() {
+      const pattern = document.getElementById('cardPattern').value;
+      const customUrlInput = document.getElementById('customUrlInput');
+      const preview = document.getElementById('patternPreview');
+      
+      // Update preview
+      preview.className = 'pattern-preview ' + pattern;
+      
+      // Show/hide custom URL input
+      customUrlInput.className = pattern === 'pattern-custom' ? 
+        'custom-url-input visible' : 'custom-url-input';
+      
+      // Update cards
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.className = 'card ' + pattern;
+      });
+    }
+
+    function updateCustomPattern() {
+      const cardBackUrl = document.getElementById('cardBack').value;
+      const style = document.createElement('style');
+      style.textContent = `
+        .pattern-custom::before {
+          background-image: url('${cardBackUrl}');
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Rest of the previous functions remain the same
+    function preloadImages(urls) {
+      const preloader = document.getElementById('preloader');
+      preloader.innerHTML = '';
+      
+      urls.forEach(url => {
+        if (!preloadedImages.has(url)) {
+          const img = new Image();
+          img.src = url;
+          preloader.appendChild(img);
+          preloadedImages.add(url);
+        }
+      });
+    }
+    
+    function updateCardSize() {
+      const size = document.getElementById('cardSize').value;
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.style.width = `${size}px`;
+        card.style.height = `${size}px`;
+      });
+    }
+    
+    function createCard(imageUrl) {
+      const card = document.createElement('div');
+      const pattern = document.getElementById('cardPattern').value;
+      card.className = `card ${pattern}`;
+      card.dataset.image = imageUrl;
+      
+      const size = document.getElementById('cardSize').value;
+      card.style.width = `${size}px`;
+      card.style.height = `${size}px`;
+      
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.alt = 'Card Image';
+      card.appendChild(img);
+      
+      card.addEventListener('click', flipCard);
+      return card;
+    }
+    
+    // Previous functions remain the same
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+    
+    function getGridSize(pairCount) {
+      const totalCards = pairCount * 2;
+      if (totalCards <= 12) return 3;
+      if (totalCards <= 20) return 4;
+      return 5;
+    }
+    
+    function initializeGame() {
+      const pairCount = parseInt(document.getElementById('pairCount').value);
+      const gameImages = imageUrls.slice(0, pairCount);
+      
+      preloadImages(gameImages);
+      
+      cards = shuffleArray([...gameImages, ...gameImages]);
+      
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      
+      const gridSize = getGridSize(pairCount);
+      grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+      
+      cards.forEach(imageUrl => {
+        const card = createCard(imageUrl);
+        grid.appendChild(card);
+      });
+    }
+    
+    function flipCard() {
+      if (
+        flippedCards.length === 2 || 
+        this.classList.contains('flipped') ||
+        this.classList.contains('matched')
+      ) {
+        return;
+      }
+      
+      this.classList.add('flipped');
+      flippedCards.push(this);
+      
+      if (flippedCards.length === 2) {
+        moves++;
+        document.getElementById('moves').textContent = moves;
+        checkMatch();
+      }
+    }
+    
+    function checkMatch() {
+      const [card1, card2] = flippedCards;
+      if (card1.dataset.image === card2.dataset.image) {
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        matchedPairs++;
+        document.getElementById('matches').textContent = matchedPairs;
+        
+        const pairCount = parseInt(document.getElementById('pairCount').value);
+        if (matchedPairs === pairCount) {
+          setTimeout(() => {
+            alert(`Congratulations! You won in ${moves} moves!`);
+          }, 500);
+        }
+      } else {
+        setTimeout(() => {
+          card1.classList.remove('flipped');
+          card2.classList.remove('flipped');
+        }, 1000);
+      }
+      flippedCards = [];
+    }
+    
+    function resetGame() {
+      moves = 0;
+      matchedPairs = 0;
+      flippedCards = [];
+      document.getElementById('moves').textContent = moves;
+      document.getElementById('matches').textContent = matchedPairs;
+      initializeGame();
+    }
+    function toggleSettings() {
+      const settings = document.getElementById('settings');
+      settings.classList.toggle('visible');
+    }
+
+    function calculateCardSize() {
+      const screenWidth = window.innerWidth;
+      const gridSize = getGridSize(parseInt(document.getElementById('pairCount').value));
+      const maxWidth = Math.min(screenWidth - 30, 800); // Maximum grid width
+      const optimalCardSize = Math.floor((maxWidth - (gridSize - 1) * 10) / gridSize);
+      return Math.min(optimalCardSize, parseInt(document.getElementById('cardSize').value));
+    }
+
+    function updateCardSize() {
+      const size = calculateCardSize();
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.style.width = `${size}px`;
+        card.style.height = `${size}px`;
+      });
+    }
+
+    // Add resize handler
+    window.addEventListener('resize', updateCardSize);
+
+    // Modify initializeGame to use calculated size
+    function initializeGame() {
+      const pairCount = parseInt(document.getElementById('pairCount').value);
+      const gameImages = imageUrls.slice(0, pairCount);
+      
+      preloadImages(gameImages);
+      
+      cards = shuffleArray([...gameImages, ...gameImages]);
+      
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      
+      const gridSize = getGridSize(pairCount);
+      grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+      
+      cards.forEach(imageUrl => {
+        const card = createCard(imageUrl);
+        grid.appendChild(card);
+      });
+
+      updateCardSize();
+    }
+    // Start the game
+    initializeGame();
+  </script>
+</body>
+</html>
